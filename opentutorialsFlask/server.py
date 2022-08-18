@@ -15,6 +15,7 @@ def Template(contents, content, id=None):
     if id != None:
         contextUI = f'''
             <li><a href="/update/{id}/">update</a></li>
+            <li><form action="/delete/{id}/" method="POST"><input type="submit" value="delete"></form>
         '''
     return f'''<!DOCTYPE html>
     <html lang="ko">
@@ -43,6 +44,18 @@ def getContents():
 def index():
     return Template(getContents(), '<h2>Welcome</h2> Hello, Web!')
 
+# <>에 해당하는 것을 아래 파라미터로 넣으면 같은 형식의 내용이 다른 여러 페이지를 볼 수 있다. 
+# <int: id>라고 하면 id는 자료형이 정수가 된다.
+@app.route('/read/<int:id>/')  
+def read(id):
+    title = ''
+    body = ''
+    for Topic in Topics:
+        if id == Topic['id']:  # 조회하기
+            title = Topic['title']
+            body = Topic['body']
+    return Template(getContents(), f'<h2>{title}</h2>{body}', id)
+
 # request.method를 통해 GET, POST를 구분한다. 
 @app.route('/create/', methods=["GET", "POST"])
 def create():
@@ -68,6 +81,9 @@ def create():
         nextID += 1  # 여기서 nextID에 1을 더하기 위해 전역 변수를 사용한다. 
         return redirect(url)
 
+
+
+
 @app.route('/update/<int:id>/', methods=["GET", "POST"])
 def update(id):
     if request.method == "GET":
@@ -87,29 +103,24 @@ def update(id):
             '''
             return Template(getContents(), content)
     elif request.method == "POST":
-        global nextID  # 전역변수로 바꾸는 방법
         title = request.form['title']
         body = request.form['body']
         for Topic in Topics:
-            if id == Topic:
+            if id == Topic[id]:
                 Topic['title'] = title
                 Topic['body'] = body
                 break
         url = '/read/'+str(id)+'/'
         return redirect(url)
 
-# <>에 해당하는 것을 아래 파라미터로 넣으면 같은 형식의 내용이 다른 여러 페이지를 볼 수 있다. 
-# <int: id>라고 하면 id는 자료형이 정수가 된다.
-@app.route('/read/<int:id>/')  
-def read(id):
-    title = ''
-    body = ''
+# 삭제 기능은 POST를 통해 기능을 구현한다. a태그 링크를 제공하면 곤란하다.
+@app.route('/delete/<int:id>/', methods=["POST"])
+def delete(id):
     for Topic in Topics:
-        if id == Topic['id']:  # 조회하기
-            title = Topic['title']
-            body = Topic['body']
-    return Template(getContents(), f'<h2>{title}</h2>{body}', id)
-
+        if id == Topic[id]:
+            Topics.remove(Topic)
+            break
+    return redirect('/')  # 삭제를 하면 홈으로 돌아감
 
 if __name__ == "__main__":
-    app.run(port=3000, debug=True)  # 개발 중에는 debug=True로 디버깅 모드로 해도 괜찮다. 실제 서비스에서는 하면 안된다.
+    app.run(port=3000, debug=True)  # 개발 중에는 debug=True로 디버깅 모드로 해도 괜찮다. 실제 서비스에서는 사용하면 곤란하다.
